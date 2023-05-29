@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Product } from './schemas/product.schema';
-import mongoose, { Model, Mongoose, ObjectId } from 'mongoose';
+import { Model } from 'mongoose';
+import { convertMongooseId } from '../util/mongoose-id-util';
+import { CustomNotFoundException } from '../exceptions/custom.exception';
 
 @Injectable()
 export class ProductsService {
@@ -21,24 +23,29 @@ export class ProductsService {
   }
 
   async findOne(id: string): Promise<Product> {
-    let product: Product | PromiseLike<Product>;
-    try {
-      const convertedId = new mongoose.Types.ObjectId(id);
-      product = await this.productModel.findById(convertedId);
-    } catch (_) {
-      throw new NotFoundException(`Product not fount with id=${id}`);
-    }
+    const convertedId = convertMongooseId(id);
+    const product = await this.productModel.findById(convertedId);
     if (!product) {
-      throw new NotFoundException(`Product not fount with id=${id}`);
+      throw new CustomNotFoundException(id);
     }
     return product;
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  update(id: string, updateProductDto: UpdateProductDto) {
+    const convertedId = convertMongooseId(id);
+    const foundProduct = this.productModel.findByIdAndUpdate(
+      convertedId,
+      updateProductDto,
+      { new: true },
+    );
+    if (!foundProduct) {
+      throw new CustomNotFoundException(id);
+    }
+
+    return foundProduct;
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return `This action removes a #${id} product`;
   }
 }
