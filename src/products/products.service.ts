@@ -46,6 +46,8 @@ export class ProductsService {
   }
 
   remove(id: string) {
-    return `This action removes a #${id} product`;
+    const convertedId = convertMongooseId(id);
+    const foundProduct = this.productModel.findByIdAndDelete(convertedId);
+    return foundProduct;
   }
 }
